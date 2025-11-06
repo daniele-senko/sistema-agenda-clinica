@@ -19,6 +19,7 @@ class Pessoa(ABC):
         Usamos um underscore '_' (ex: self._nome) para indicar que 
         esses atributos são "protegidos". Isso é parte do ENCAPSULAMENTO.
         """
+        self._id = None
         self._nome = nome
         self._cpf = cpf
         self._telefone = telefone

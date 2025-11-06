@@ -1,4 +1,4 @@
-from .pessoa import Pessoa
+from models.pessoa import Pessoa
 
 class Medico(Pessoa):
     """
@@ -11,7 +11,7 @@ class Medico(Pessoa):
     def __init__(self, nome: str, cpf: str, telefone: str, crm: str, especialidade: str, regras_disponibilidade: dict):
         
         # 1. Chama o construtor da classe Mãe (Pessoa).
-        super().__init__(nome, cpf, telefone)
+        super().__init__(id, nome, cpf,)
 
         # 2. Inicializa os atributos específicos do Médico.
         self._crm = crm

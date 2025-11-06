@@ -1,3 +1,4 @@
+import json
 import os.path
 import sqlite3
 from sqlite3 import Error
@@ -40,7 +41,8 @@ class AgendaRepository:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 nome TEXT NOT NULL,
                 cpf TEXT UNIQUE NOT NULL,
-                telefone TEXT NOT NULL
+                telefone TEXT NOT NULL,
+                plano_saude TEXT NOT NULL
             );
             """)
             cursor.execute(
@@ -51,8 +53,8 @@ class AgendaRepository:
                 cpf TEXT UNIQUE NOT NULL,
                 telefone TEXT NOT NULL,
                 crm TEXT UNIQUE NOT NULL,
-                especialidade TEXT NOT NULL,
-                regras_disponibilidade TEXT NOT NULL
+                especialidade TEXT,
+                regras_disponibilidade TEXT
             );
             """)
             cursor.execute(
@@ -79,15 +81,15 @@ class AgendaRepository:
                 try:
                     cursor.execute(
                         """
-                        INSERT INTO pacientes (nome, cpf, telefone)
-                        VALUES (?, ?, ?);
+                        INSERT INTO pacientes (nome, cpf, telefone, plano_saude)
+                        VALUES (?, ?, ?, ?);
                         """,
-                        (paciente.nome, paciente.cpf, paciente.telefone)
+                        (paciente.nome, paciente.cpf, paciente.telefone, paciente.plano_saude)
                     )
                     conn.commit()
-                    paciente_id = cursor.lastrowid
+                    paciente.id = cursor.lastrowid
                     print(f"Paciente {paciente.nome} salvo com sucesso.")
-                    return paciente_id
+                    return paciente.id
                 except sqlite3.IntegrityError as e:
                     print(f"Erro ao salvar paciente: {e}")
                     raise
@@ -129,7 +131,8 @@ class AgendaRepository:
                     rows = cursor.fetchall()
                     for row in rows:
                         nome, cpf, telefone = row
-                        pacientes.append(Paciente(nome=nome, cpf=cpf, telefone=telefone, plano_saude="Desconhecido"))
+                        pacientes.append(
+                            Paciente(nome=nome, cpf=cpf, telefone=telefone, plano_saude="Desconhecido"))
                     return pacientes
                 except sqlite3.Error as e:
                     print(f"Erro ao buscar pacientes: {e}")
@@ -154,12 +157,35 @@ class AgendaRepository:
                     print(f"Erro ao deletar paciente: {e}")
                     raise
 
+    def buscar_paciente_por_cpf(self, cpf: str) -> Optional[Paciente]:
+            """Busca um Paciente pelo CPF. Retorna None se não encontrado."""
+            with self._get_conexao() as conn:
+                cursor = conn.cursor()
+                try:
+                    cursor.execute(
+                        """
+                        SELECT id, nome, cpf, telefone, plano_saude
+                        FROM pacientes
+                        WHERE cpf = ?;
+                        """,
+                        (cpf,)
+                    )
+                    row = cursor.fetchone()
+                    if row:
+                        from models.paciente import Paciente
+                        return Paciente(id=row[0], nome=row[1], cpf=[2], telefone=row[3], plano_saude=[4])
+                    return None
+                except sqlite3.Error as e:
+                    print(f"Erro ao buscar paciente por CPF: {e}")
+                    raise
+
 
     def salvar_medico(self, medico: Medico) -> int:
             """Salva um novo Médico no banco de dados e retorna seu ID."""
             with self._get_conexao() as conn:
                 cursor = conn.cursor()
                 try:
+                    regras_json = json.dumps(medico.regras_disponibilidade)
                     cursor.execute(
                         """
                         INSERT INTO medicos (nome, cpf, telefone, especialidade, crm, regras_disponibilidade)
@@ -171,7 +197,6 @@ class AgendaRepository:
                             medico.telefone,
                             medico.especialidade,
                             medico.crm,
-                            str(medico.regras_disponibilidade)
                         )
                     )
                     conn.commit()
@@ -202,6 +227,27 @@ class AgendaRepository:
                 except sqlite3.Error as e:
                     print(f"Erro ao buscar médico: {e}")
                     raise
+    def buscar_medico_por_crm(self, crm: str) -> Optional[Medico]:
+            """Busca um Médico pelo CRM. Retorna None se não encontrado."""
+            with self._get_conexao() as conn:
+                cursor = conn.cursor()
+                try:
+                    cursor.execute(
+                        """
+                        SELECT id, nome, cpf, telefone, especialidade
+                        FROM medicos
+                        WHERE crm = ?;
+                        """,
+                        (crm,)
+                    )
+                    row = cursor.fetchone()
+                    if row:
+                        return Medico(id=row[0], nome=row[1], cpf=row[2], telefone=row[3], crm=[4], especialidade=row[5], regras_disponibilidade=[6])
+                    return None
+                except sqlite3.Error as e:
+                    print(f"Erro ao buscar médico por CRM: {e}")
+                    raise
+
 
     def buscar_todos_medicos(self) -> List[Medico]:
             """Retorna uma lista de todos os Médicos no banco de dados."""
@@ -246,6 +292,18 @@ class AgendaRepository:
             with self._get_conexao() as conn:
                 cursor = conn.cursor()
                 try:
+                    paciente = self.buscar_paciente_por_cpf(ag.paciente.cpf)
+                    if paciente:
+                        ag.paciente.id = paciente.id
+                    else:
+                        ag.paciente.id = self.salvar_paciente(ag.paciente)
+
+                    medico = self.buscar_medico_por_crm(ag.medico.crm)
+                    if medico:
+                        ag.medico.id = medico.id
+                    else:
+                        ag.medico.id = self.salvar_medico(ag.medico)
+
                     cursor.execute(
                         """
                         INSERT INTO agendamentos (id_paciente, id_medico, data_hora_inicio, duracao_minutos, status)
@@ -253,6 +311,7 @@ class AgendaRepository:
                         """,
                         (
                             ag.paciente.id,
+                            ag.medico.id,
                             ag.medico.id,
                             ag.data_hora_inicio.isoformat(),
                             ag.duracao_minutos,

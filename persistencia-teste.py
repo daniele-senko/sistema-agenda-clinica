@@ -16,8 +16,9 @@ def test_agenda_repository():
     from models.agendamento import Agendamento
     from datetime import datetime
 
-    paciente0 = Paciente(nome="Paciente Teste", cpf="000.000.000-00", telefone="(00) 00000-0000", plano_saude="Teste Saúde")
-    medico0 = Medico(nome="Dr. Teste" , cpf="111.111.111-11", telefone="(11) 11111-1111", crm="CRM0003", especialidade="Teste", regras_disponibilidade={})
+    paciente0 = Paciente(nome="Paciente Teste", cpf="000.000.000-00", telefone="(00) 00000-0000",
+                         plano_saude="Teste Saúde")
+    medico0 = Medico(nome="Dr. Teste" , cpf="111.111.111-11", telefone="(11) 11111-1111", crm="CRM0003", especialidade="Teste", regras_disponibilidade={"segunda": ("08:00", "16:00")})
     agendamento = Agendamento(paciente=paciente0, medico=medico0, data_hora_inicio=datetime(2024, 6, 15, 10, 0), duracao_minutos=30)
 
     repo.salvar_paciente(paciente0)
