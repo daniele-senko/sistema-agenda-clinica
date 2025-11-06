@@ -28,7 +28,6 @@ class AgendaRepository:
             conn.execute("PRAGMA foreign_keys = ON;")  # Habilita suporte a chaves estrangeiras
             return conn
         except Error as e:
-            print("Erro ao conectar ao banco de dados: {e}")
             raise
 
     def _criar_tabelas(self):
@@ -71,8 +70,6 @@ class AgendaRepository:
             );
             """)
         conn.commit()
-        conn.close()
-        print("Tabelas criadas ou já existentes.")
 
     def salvar_paciente(self, paciente: Paciente) -> int:
             """Salva um novo Paciente no banco de dados e retorna seu ID."""
@@ -88,10 +85,8 @@ class AgendaRepository:
                     )
                     conn.commit()
                     paciente.id = cursor.lastrowid
-                    print(f"Paciente {paciente.nome} salvo com sucesso.")
                     return paciente.id
                 except sqlite3.IntegrityError as e:
-                    print(f"Erro ao salvar paciente: {e}")
                     raise
 
     def buscar_paciente(self, id_paciente: int) -> Optional[Paciente]:
@@ -113,7 +108,6 @@ class AgendaRepository:
                         return Paciente(nome=nome, cpf=cpf, telefone=telefone, plano_saude="Desconhecido")
                     return None
                 except sqlite3.Error as e:
-                    print(f"Erro ao buscar paciente: {e}")
                     raise
 
     def buscar_todos_pacientes(self) -> List[Paciente]:
@@ -151,10 +145,7 @@ class AgendaRepository:
                         (id_paciente,)
                     )
                     conn.commit()
-                    conn.close()
-                    print(f"Paciente com ID {id_paciente} deletado com sucesso.")
                 except sqlite3.Error as e:
-                    print(f"Erro ao deletar paciente: {e}")
                     raise
 
     def buscar_paciente_por_cpf(self, cpf: str) -> Optional[Paciente]:
@@ -176,7 +167,6 @@ class AgendaRepository:
                         return Paciente(id=row[0], nome=row[1], cpf=[2], telefone=row[3], plano_saude=[4])
                     return None
                 except sqlite3.Error as e:
-                    print(f"Erro ao buscar paciente por CPF: {e}")
                     raise
 
 
@@ -200,10 +190,8 @@ class AgendaRepository:
                         )
                     )
                     conn.commit()
-                    print("Médico salvo com sucesso.")
                     return cursor.lastrowid
                 except sqlite3.IntegrityError as e:
-                    print(f"Erro ao salvar médico: {e}")
                     raise
 
     def buscar_medico(self, id_medico: int) -> Optional[Medico]:
@@ -225,8 +213,8 @@ class AgendaRepository:
                         return Medico(nome=nome, cpf=cpf, telefone=telefone, crm="Desconhecido", especialidade=especialidade, regras_disponibilidade={})
                     return None
                 except sqlite3.Error as e:
-                    print(f"Erro ao buscar médico: {e}")
                     raise
+
     def buscar_medico_por_crm(self, crm: str) -> Optional[Medico]:
             """Busca um Médico pelo CRM. Retorna None se não encontrado."""
             with self._get_conexao() as conn:
@@ -245,7 +233,6 @@ class AgendaRepository:
                         return Medico(id=row[0], nome=row[1], cpf=row[2], telefone=row[3], crm=[4], especialidade=row[5], regras_disponibilidade=[6])
                     return None
                 except sqlite3.Error as e:
-                    print(f"Erro ao buscar médico por CRM: {e}")
                     raise
 
 
@@ -267,7 +254,6 @@ class AgendaRepository:
                         medicos.append(Medico(nome=nome, cpf=cpf, telefone=telefone, crm="Desconhecido", especialidade=especialidade, regras_disponibilidade={}))
                     return medicos
                 except sqlite3.Error as e:
-                    print(f"Erro ao buscar médicos: {e}")
                     raise
 
     def deletar_medico(self, id_medico: int) -> None:
@@ -284,7 +270,6 @@ class AgendaRepository:
                     )
                     conn.commit()
                 except sqlite3.Error as e:
-                    print(f"Erro ao deletar médico: {e}")
                     raise
 
     def salvar_agendamento(self, ag: Agendamento) -> int:
@@ -319,10 +304,8 @@ class AgendaRepository:
                         )
                     )
                     conn.commit()
-                    print("Agendamento salvo com sucesso.")
                     return cursor.lastrowid
                 except sqlite3.IntegrityError as e:
-                    print(f"Erro ao salvar agendamento: {e}")
                     raise
 
     def buscar_agendamentos_por_paciente(self, id_paciente: int) -> List[Agendamento]:
@@ -355,7 +338,6 @@ class AgendaRepository:
                             )
                     return agendamentos
                 except sqlite3.Error as e:
-                    print(f"Erro ao buscar agendamentos por paciente: {e}")
                     raise
 
     def buscar_agendamentos_por_medico_e_data(self, id_medico: int, data_iso: str) -> List[Agendamento]:
@@ -388,7 +370,6 @@ class AgendaRepository:
                             )
                     return agendamentos
                 except sqlite3.Error as e:
-                    print(f"Erro ao buscar agendamentos por médico e data: {e}")
                     raise
 
     def deletar_agendamento(self, id_agendamento: int) -> None:
@@ -404,7 +385,6 @@ class AgendaRepository:
                         (id_agendamento,)
                     )
                     conn.commit()
-                    print(f"Agendamento com ID {id_agendamento} deletado com sucesso.")
                 except sqlite3.Error as e:
                     print(f"Erro ao deletar agendamento: {e}")
                     raise
