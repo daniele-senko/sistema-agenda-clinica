@@ -43,6 +43,9 @@ class AgendaRepository:
                 telefone TEXT NOT NULL
             );
             """)
+            cursor.commit()
+            print("Tabela 'pacientes' criada ou já existe.")
+
             cursor.execute(
             """
             CREATE TABLE IF NOT EXISTS medicos (
@@ -53,6 +56,9 @@ class AgendaRepository:
                 especialidade TEXT NOT NULL
             );
             """)
+            cursor.commit()
+            print("Tabela 'medicos' criada ou já existe.")
+
             cursor.execute(
             """
             CREATE TABLE IF NOT EXISTS agendamentos (
@@ -67,6 +73,7 @@ class AgendaRepository:
             );
             """)
         conn.commit()
+        print("Tabela 'agendamentos' criada ou já existe.")
         conn.close()
 
 def salvar_paciente(self, paciente: Paciente) -> int:
@@ -92,36 +99,44 @@ def buscar_paciente(self, id_paciente: int) -> Optional[Paciente]:
         """Busca um Paciente pelo ID. Retorna None se não encontrado."""
         with self._get_conexao() as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                """
-                SELECT nome, cpf, telefone
-                FROM pacientes
-                WHERE id = ?;
-                """,
-                (id_paciente,)
-            )
-            row = cursor.fetchone()
-            if row:
-                nome, cpf, telefone = row
-                return Paciente(nome=nome, cpf=cpf, telefone=telefone, plano_saude="Desconhecido")
-            return None
+            try:
+                cursor.execute(
+                    """
+                    SELECT nome, cpf, telefone
+                    FROM pacientes
+                    WHERE id = ?;
+                    """,
+                    (id_paciente,)
+                )
+                row = cursor.fetchone()
+                if row:
+                    nome, cpf, telefone = row
+                    return Paciente(nome=nome, cpf=cpf, telefone=telefone, plano_saude="Desconhecido")
+                return None
+            except sqlite3.Error as e:
+                print(f"Erro ao buscar paciente: {e}")
+                raise
 
 def buscar_todos_pacientes(self) -> List[Paciente]:
         """Retorna uma lista de todos os Pacientes no banco de dados."""
         pacientes = []
         with self._get_conexao() as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                """
-                SELECT nome, cpf, telefone
-                FROM pacientes;
-                """
-            )
-            rows = cursor.fetchall()
-            for row in rows:
-                nome, cpf, telefone = row
-                pacientes.append(Paciente(nome=nome, cpf=cpf, telefone=telefone, plano_saude="Desconhecido"))
-        return pacientes
+            try:
+                cursor.execute(
+                    """
+                    SELECT nome, cpf, telefone
+                    FROM pacientes;
+                    """
+                )
+                rows = cursor.fetchall()
+                for row in rows:
+                    nome, cpf, telefone = row
+                    pacientes.append(Paciente(nome=nome, cpf=cpf, telefone=telefone, plano_saude="Desconhecido"))
+                return pacientes
+            except sqlite3.Error as e:
+                print(f"Erro ao buscar pacientes: {e}")
+                raise
 
 def salvar_medico(self, medico: Medico) -> int:
         """Salva um novo Médico no banco de dados e retorna seu ID."""
@@ -146,36 +161,44 @@ def buscar_medico(self, id_medico: int) -> Optional[Medico]:
         """Busca um Médico pelo ID. Retorna None se não encontrado."""
         with self._get_conexao() as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                """
-                SELECT nome, cpf, telefone, especialidade
-                FROM medicos
-                WHERE id = ?;
-                """,
-                (id_medico,)
-            )
-            row = cursor.fetchone()
-            if row:
-                nome, cpf, telefone, especialidade = row
-                return Medico(nome=nome, cpf=cpf, telefone=telefone, crm="Desconhecido", especialidade=especialidade, regras_disponibilidade={})
-            return None
+            try:
+                cursor.execute(
+                    """
+                    SELECT nome, cpf, telefone, especialidade
+                    FROM medicos
+                    WHERE id = ?;
+                    """,
+                    (id_medico,)
+                )
+                row = cursor.fetchone()
+                if row:
+                    nome, cpf, telefone, especialidade = row
+                    return Medico(nome=nome, cpf=cpf, telefone=telefone, crm="Desconhecido", especialidade=especialidade, regras_disponibilidade={})
+                return None
+            except sqlite3.Error as e:
+                print(f"Erro ao buscar médico: {e}")
+                raise
 
 def buscar_todos_medicos(self) -> List[Medico]:
         """Retorna uma lista de todos os Médicos no banco de dados."""
         medicos = []
         with self._get_conexao() as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                """
-                SELECT nome, cpf, telefone, especialidade
-                FROM medicos;
-                """
-            )
-            rows = cursor.fetchall()
-            for row in rows:
-                nome, cpf, telefone, especialidade = row
-                medicos.append(Medico(nome=nome, cpf=cpf, telefone=telefone, crm="Desconhecido", especialidade=especialidade, regras_disponibilidade={}))
-        return medicos
+            try:
+                cursor.execute(
+                    """
+                    SELECT nome, cpf, telefone, especialidade
+                    FROM medicos;
+                    """
+                )
+                rows = cursor.fetchall()
+                for row in rows:
+                    nome, cpf, telefone, especialidade = row
+                    medicos.append(Medico(nome=nome, cpf=cpf, telefone=telefone, crm="Desconhecido", especialidade=especialidade, regras_disponibilidade={}))
+                return medicos
+            except sqlite3.Error as e:
+                print(f"Erro ao buscar médicos: {e}")
+                raise
 
 def salvar_agendamento(self, ag: Agendamento) -> int:
         """Salva um novo Agendamento no banco de dados e retorna seu ID."""
@@ -207,55 +230,63 @@ def buscar_agendamentos_por_paciente(self, id_paciente: int) -> List[Agendamento
         agendamentos = []
         with self._get_conexao() as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                """
-                SELECT id_medico, data_hora_inicio, duracao_minutos, status
-                FROM agendamentos
-                WHERE id_paciente = ?;
-                """,
-                (id_paciente,)
-            )
-            rows = cursor.fetchall()
-            for row in rows:
-                id_medico, data_hora_inicio, duracao_minutos, status = row
-                medico = self.buscar_medico(id_medico)
-                paciente = self.buscar_paciente(id_paciente)
-                if medico and paciente:
-                    agendamentos.append(
-                        Agendamento(
-                            paciente=paciente,
-                            medico=medico,
-                            data_hora_inicio=datetime.fromisoformat(data_hora_inicio),
-                            duracao_minutos=duracao_minutos
+            try:
+                cursor.execute(
+                    """
+                    SELECT id_medico, data_hora_inicio, duracao_minutos, status
+                    FROM agendamentos
+                    WHERE id_paciente = ?;
+                    """,
+                    (id_paciente,)
+                )
+                rows = cursor.fetchall()
+                for row in rows:
+                    id_medico, data_hora_inicio, duracao_minutos, status = row
+                    medico = self.buscar_medico(id_medico)
+                    paciente = self.buscar_paciente(id_paciente)
+                    if medico and paciente:
+                        agendamentos.append(
+                            Agendamento(
+                                paciente=paciente,
+                                medico=medico,
+                                data_hora_inicio=datetime.fromisoformat(data_hora_inicio),
+                                duracao_minutos=duracao_minutos
+                            )
                         )
-                    )
-        return agendamentos
+                return agendamentos
+            except sqlite3.Error as e:
+                print(f"Erro ao buscar agendamentos por paciente: {e}")
+                raise
 
 def buscar_agendamentos_por_medico_e_data(self, id_medico: int, data_iso: str) -> List[Agendamento]:
         """Retorna uma lista de Agendamentos para um dado Médico em uma data específica."""
         agendamentos = []
         with self._get_conexao() as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                """
-                SELECT id_paciente, data_hora_inicio, duracao_minutos, status
-                FROM agendamentos
-                WHERE id_medico = ? AND date(data_hora_inicio) = date(?);
-                """,
-                (id_medico, data_iso)
-            )
-            rows = cursor.fetchall()
-            for row in rows:
-                id_paciente, data_hora_inicio, duracao_minutos, status = row
-                medico = self.buscar_medico(id_medico)
-                paciente = self.buscar_paciente(id_paciente)
-                if medico and paciente:
-                    agendamentos.append(
-                        Agendamento(
-                            paciente=paciente,
-                            medico=medico,
-                            data_hora_inicio=datetime.fromisoformat(data_hora_inicio),
-                            duracao_minutos=duracao_minutos
+            try:
+                cursor.execute(
+                    """
+                    SELECT id_paciente, data_hora_inicio, duracao_minutos, status
+                    FROM agendamentos
+                    WHERE id_medico = ? AND date(data_hora_inicio) = date(?);
+                    """,
+                    (id_medico, data_iso)
+                )
+                rows = cursor.fetchall()
+                for row in rows:
+                    id_paciente, data_hora_inicio, duracao_minutos, status = row
+                    medico = self.buscar_medico(id_medico)
+                    paciente = self.buscar_paciente(id_paciente)
+                    if medico and paciente:
+                        agendamentos.append(
+                            Agendamento(
+                                paciente=paciente,
+                                medico=medico,
+                                data_hora_inicio=datetime.fromisoformat(data_hora_inicio),
+                                duracao_minutos=duracao_minutos
+                            )
                         )
-                    )
-        return agendamentos
+                return agendamentos
+            except sqlite3.Error as e:
+                print(f"Erro ao buscar agendamentos por médico e data: {e}")
+                raise
