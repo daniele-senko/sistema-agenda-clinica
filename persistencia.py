@@ -69,8 +69,8 @@ class AgendaRepository:
             );
             """)
         conn.commit()
-        print("Tabelas criadas ou já existentes.")
         conn.close()
+        print("Tabelas criadas ou já existentes.")
 
     def salvar_paciente(self, paciente: Paciente) -> int:
             """Salva um novo Paciente no banco de dados e retorna seu ID."""
@@ -85,8 +85,9 @@ class AgendaRepository:
                         (paciente.nome, paciente.cpf, paciente.telefone)
                     )
                     conn.commit()
+                    paciente_id = cursor.lastrowid
                     print(f"Paciente {paciente.nome} salvo com sucesso.")
-                    return cursor.lastrowid
+                    return paciente_id
                 except sqlite3.IntegrityError as e:
                     print(f"Erro ao salvar paciente: {e}")
                     raise
@@ -147,6 +148,7 @@ class AgendaRepository:
                         (id_paciente,)
                     )
                     conn.commit()
+                    conn.close()
                     print(f"Paciente com ID {id_paciente} deletado com sucesso.")
                 except sqlite3.Error as e:
                     print(f"Erro ao deletar paciente: {e}")
@@ -160,10 +162,17 @@ class AgendaRepository:
                 try:
                     cursor.execute(
                         """
-                        INSERT INTO medicos (nome, cpf, telefone, especialidade)
-                        VALUES (?, ?, ?, ?);
+                        INSERT INTO medicos (nome, cpf, telefone, especialidade, crm, regras_disponibilidade)
+                        VALUES (?, ?, ?, ?, ?, ?);
                         """,
-                        (medico.nome, medico.cpf, medico.telefone, medico.especialidade)
+                        (
+                            medico.nome,
+                            medico.cpf,
+                            medico.telefone,
+                            medico.especialidade,
+                            medico.crm,
+                            str(medico.regras_disponibilidade)
+                        )
                     )
                     conn.commit()
                     print("Médico salvo com sucesso.")
@@ -228,7 +237,6 @@ class AgendaRepository:
                         (id_medico,)
                     )
                     conn.commit()
-                    print(f"Médico com ID {id_medico} deletado com sucesso.")
                 except sqlite3.Error as e:
                     print(f"Erro ao deletar médico: {e}")
                     raise
