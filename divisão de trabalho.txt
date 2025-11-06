@@ -1,0 +1,115 @@
+🧑‍💻 Pessoa 1: Especialista em Persistência (Banco de Dados)
+Essa pessoa será responsável por toda a interação com o banco de dados SQLite. O foco dela é "como" os dados são salvos e buscados, escondendo toda a complexidade do SQL do restante da equipe.
+
+Responsabilidades Principais:
+
+
+Modelagem do BD: Criar o arquivo clinica.db e definir o esquema das três tabelas: pacientes, medicos e agendamentos.
+
+
+
+Classe GerenciadorBD: Implementar a classe GerenciadorBD, que será a única a conter código SQL.
+
+
+Serialização: Implementar a lógica para salvar as regras_disponibilidade do médico (provavelmente como uma string JSON) no banco e desserializá-la de volta para um dicionário Python ao buscar o médico.
+
+
+Métodos de Busca: Implementar todos os métodos de busca que retornam objetos das classes:
+
+
+buscar_paciente(id_paciente)
+
+
+buscar_medico(id_medico)
+
+
+buscar_agendamentos_por_paciente(id_paciente)
+
+
+buscar_agendamentos_por_medico_e_data(id_medico, data)
+
+(Métodos para buscar todos os pacientes e médicos para a função de polimorfismo) .
+
+Métodos de Escrita: Criar os métodos para salvar novos pacientes, médicos e, o mais importante, salvar um novo objeto Agendamento no banco.
+
+🏛️ Pessoa 2: Arquiteto(a) de POO (Modelos de Dados)
+Essa pessoa será responsável por construir os "tijolos" do sistema. Ela vai focar em aplicar os pilares da POO para definir as classes que representam as entidades do mundo real (Pessoa, Paciente, Médico, Agendamento).
+
+Responsabilidades Principais:
+
+Abstração e Herança:
+
+Criar a classe abstrata Pessoa com seus atributos e o método abstrato identificar().
+
+
+Criar a classe Paciente herdando de Pessoa e implementando identificar().
+
+
+
+
+Criar a classe Medico herdando de Pessoa e implementando identificar().
+
+
+
+
+Encapsulamento e Composição:
+
+Criar a classe Agendamento.
+
+Garantir que os atributos (_data_hora_inicio, _duracao_minutos, status) sejam privados.
+
+
+Implementar a propriedade data_hora_fim (propriedade calculada).
+
+Implementar os métodos cancelar() e confirmar_realizacao() que alteram o status interno.
+
+Definição do Construtor: Definir os construtores (_init_) de todas essas classes, que serão usados tanto pela Pessoa 1 (ao recriar objetos do BD) quanto pela Pessoa 3 (ao criar novos agendamentos).
+
+🧠 Pessoa 3: Desenvolvedor(a) da Lógica de Negócios (Orquestração)
+Essa pessoa será responsável por fazer o sistema "pensar". Ela vai consumir o trabalho das outras duas pessoas (usando as classes da Pessoa 2 e o GerenciadorBD da Pessoa 1) para aplicar as regras de negócio da clínica.
+
+Responsabilidades Principais:
+
+
+Classe Clinica: Implementar a classe orquestradora Clinica, que deve receber uma instância de GerenciadorBD no seu construtor. Esta classe não deve conter SQL.
+
+
+
+Lógica de Disponibilidade: Implementar o método privado _verificar_disponibilidade. Este é o núcleo do projeto e inclui:
+
+
+Verificar a regra de horário de trabalho do médico (usando medico.regras_disponibilidade).
+
+
+Verificar conflitos de agendamento (buscando no BD e iterando sobre os resultados).
+
+
+
+Método Principal: Implementar o marcar_consulta , que usa o _verificar_disponibilidade e, se tudo estiver OK, cria o objeto Agendamento e pede ao GerenciadorBD para salvá-lo.
+
+
+Métodos de Consulta: Implementar os métodos "front-end" da lógica:
+
+
+consultar_agenda_paciente(id_paciente).
+
+
+
+
+consultar_agenda_medico(id_medico, data).
+
+
+
+Polimorfismo: Implementar o método listar_membros_clinica() , que busca todos os médicos e pacientes (usando o GerenciadorBD) e chama o método identificar() de cada um.
+
+
+🤝 Como Coordenar o Trabalho
+Pessoa 2 (POO) começa primeiro: Essa pessoa deve definir a estrutura das classes (Pessoa, Paciente, Medico, Agendamento) e seus construtores o mais rápido possível. Os outros dois precisam dessa definição para trabalhar.
+
+Pessoa 1 (BD) e Pessoa 3 (Lógica) trabalham em paralelo:
+
+A Pessoa 1 pode começar a criar o banco e os métodos (buscar_..., salvar_...) usando as definições de classe da Pessoa 2.
+
+A Pessoa 3 pode começar a escrever a lógica de _verificar_disponibilidade e marcar_consulta, assumindo que os métodos do GerenciadorBD (da Pessoa 1) e as classes (da Pessoa 2) existem.
+
+Integração: A etapa final é juntar tudo. A Pessoa 3 vai instanciar a Clinica com o GerenciadorBD real da Pessoa 1 e usar os modelos de dados reais da Pessoa 2.
