@@ -277,17 +277,32 @@ class AgendaRepository:
             with self._get_conexao() as conn:
                 cursor = conn.cursor()
                 try:
-                    paciente = self.buscar_paciente_por_cpf(ag.paciente.cpf)
-                    if paciente:
-                        ag.paciente.id = paciente.id
-                    else:
-                        ag.paciente.id = self.salvar_paciente(ag.paciente)
 
-                    medico = self.buscar_medico_por_crm(ag.medico.crm)
-                    if medico:
-                        ag.medico.id = medico.id
+                    # Obtém o ID do paciente pelo CPF
+                    cursor.execute(
+                        """"
+                        SELECT id FROM pacientes WHERE cpf = ?;
+                        """,
+                        (ag.paciente.cpf,)
+                    )
+                    paciente_row = cursor.fetchone()
+                    if paciente_row:
+                        ag.paciente.id = paciente_row[0]
                     else:
-                        ag.medico.id = self.salvar_medico(ag.medico)
+                        raise ValueError("Paciente não encontrado no banco de dados.")
+
+                    # Obtém o ID do médico pelo CRM
+                    cursor.execute(
+                        """"
+                        SELECT id FROM medicos WHERE crm = ?;
+                        """,
+                        (ag.medico.crm,)
+                    )
+                    medico_row = cursor.fetchone()
+                    if medico_row:
+                        ag.medico.id = medico_row[0]
+                    else:
+                        raise ValueError("Médico não encontrado no banco de dados.")
 
                     cursor.execute(
                         """
@@ -296,7 +311,6 @@ class AgendaRepository:
                         """,
                         (
                             ag.paciente.id,
-                            ag.medico.id,
                             ag.medico.id,
                             ag.data_hora_inicio.isoformat(),
                             ag.duracao_minutos,
