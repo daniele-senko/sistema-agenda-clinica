@@ -2,21 +2,14 @@ from __future__ import annotations
 
 from datetime import datetime, date, time, timedelta
 from typing import List
-import sys
-from pathlib import Path
 
-# Tornar o pacote local importável quando este script é executado como
-# script standalone. Adicionamos a pasta 'sistema-agenda-clinica' ao
-# sys.path para permitir 'from models.xxx import YYY'.
-PROJECT_ROOT = Path(__file__).parent
-MODELS_DIR = PROJECT_ROOT / "sistema-agenda-clinica"
-if str(MODELS_DIR) not in sys.path:
-    sys.path.insert(0, str(MODELS_DIR))
+# Importações relativas (estamos dentro do pacote `models`).
+from .paciente import Paciente
+from .medico import Medico
+from .agendamento import Agendamento
 
-from models.paciente import Paciente
-from models.medico import Medico
-from models.agendamento import Agendamento
-
+# Importa o repositório de persistência definido em ../persistencia.py
+from ..persistencia import AgendaRepository
 
 class Clinica:
     """
@@ -32,10 +25,8 @@ class Clinica:
       - buscar_agendamentos_por_medico_e_data(id_medico, data_iso: str) -> list[Agendamento]
       - salvar_agendamento(ag: Agendamento) -> int
     """
-
-    def __init__(self, gerenciador_bd):
+    def __init__(self, gerenciador_bd: AgendaRepository):
         self.bd = gerenciador_bd
-
     # ----------------- API pública -----------------
 
     def marcar_consulta(self, id_paciente: int, id_medico: int, inicio: datetime, duracao_min: int) -> Agendamento:
