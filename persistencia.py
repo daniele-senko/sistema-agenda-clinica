@@ -96,7 +96,7 @@ class AgendaRepository:
                 try:
                     cursor.execute(
                         """
-                        SELECT nome, cpf, telefone
+                        SELECT id, nome, cpf, telefone, plano_saude
                         FROM pacientes
                         WHERE id = ?;
                         """,
@@ -104,8 +104,10 @@ class AgendaRepository:
                     )
                     row = cursor.fetchone()
                     if row:
-                        nome, cpf, telefone = row
-                        return Paciente(nome=nome, cpf=cpf, telefone=telefone, plano_saude="Desconhecido")
+                        pid, nome, cpf, telefone, plano = row
+                        p = Paciente(nome=nome, cpf=cpf, telefone=telefone, plano_saude=plano)
+                        p.id = pid
+                        return p
                     return None
                 except sqlite3.Error as e:
                     raise
@@ -118,15 +120,16 @@ class AgendaRepository:
                 try:
                     cursor.execute(
                         """
-                        SELECT nome, cpf, telefone
+                        SELECT id, nome, cpf, telefone, plano_saude
                         FROM pacientes;
                         """
                     )
                     rows = cursor.fetchall()
                     for row in rows:
-                        nome, cpf, telefone = row
-                        pacientes.append(
-                            Paciente(nome=nome, cpf=cpf, telefone=telefone, plano_saude="Desconhecido"))
+                        pid, nome, cpf, telefone, plano = row
+                        p = Paciente(nome=nome, cpf=cpf, telefone=telefone, plano_saude=plano)
+                        p.id = pid
+                        pacientes.append(p)
                     return pacientes
                 except sqlite3.Error as e:
                     print(f"Erro ao buscar pacientes: {e}")
@@ -163,8 +166,8 @@ class AgendaRepository:
                     )
                     row = cursor.fetchone()
                     if row:
-                        from models.paciente import Paciente
-                        return Paciente(id=row[0], nome=row[1], cpf=[2], telefone=row[3], plano_saude=[4])
+                        pid, nome, cpf_row, telefone, plano = row
+                        return Paciente(id=pid, nome=nome, cpf=cpf_row, telefone=telefone, plano_saude=plano)
                     return None
                 except sqlite3.Error as e:
                     raise
@@ -175,7 +178,8 @@ class AgendaRepository:
             with self._get_conexao() as conn:
                 cursor = conn.cursor()
                 try:
-                    # TOFIX Ajustar para incluir regras_disponibilidade no sqlite3
+                    # Serializar regras_disponibilidade como JSON
+                    regras_json = json.dumps(medico.regras_disponibilidade) if medico.regras_disponibilidade else "{}"
                     cursor.execute(
                         """
                         INSERT INTO medicos (nome, cpf, telefone, especialidade, crm, regras_disponibilidade)
@@ -187,11 +191,12 @@ class AgendaRepository:
                             medico.telefone,
                             medico.especialidade,
                             medico.crm,
-                            medico.regras_disponibilidade
+                            regras_json
                         )
                     )
                     conn.commit()
-                    return cursor.lastrowid
+                    medico.id = cursor.lastrowid
+                    return medico.id
                 except sqlite3.IntegrityError as e:
                     raise
 
@@ -202,7 +207,7 @@ class AgendaRepository:
                 try:
                     cursor.execute(
                         """
-                        SELECT nome, cpf, telefone, especialidade
+                        SELECT id, nome, cpf, telefone, crm, especialidade, regras_disponibilidade
                         FROM medicos
                         WHERE id = ?;
                         """,
@@ -210,8 +215,11 @@ class AgendaRepository:
                     )
                     row = cursor.fetchone()
                     if row:
-                        nome, cpf, telefone, especialidade = row
-                        return Medico(nome=nome, cpf=cpf, telefone=telefone, crm="Desconhecido", especialidade=especialidade, regras_disponibilidade={})
+                        mid, nome, cpf, telefone, crm, especialidade, regras_json = row
+                        regras = json.loads(regras_json) if regras_json else {}
+                        m = Medico(nome=nome, cpf=cpf, telefone=telefone, crm=crm, especialidade=especialidade, regras_disponibilidade=regras)
+                        m.id = mid
+                        return m
                     return None
                 except sqlite3.Error as e:
                     raise
@@ -223,7 +231,7 @@ class AgendaRepository:
                 try:
                     cursor.execute(
                         """
-                        SELECT id, nome, cpf, telefone, especialidade
+                        SELECT id, nome, cpf, telefone, crm, especialidade, regras_disponibilidade
                         FROM medicos
                         WHERE crm = ?;
                         """,
@@ -231,7 +239,11 @@ class AgendaRepository:
                     )
                     row = cursor.fetchone()
                     if row:
-                        return Medico(id=row[0], nome=row[1], cpf=row[2], telefone=row[3], crm=[4], especialidade=row[5], regras_disponibilidade=[6])
+                        mid, nome, cpf, telefone, crm_row, especialidade, regras_json = row
+                        regras = json.loads(regras_json) if regras_json else {}
+                        m = Medico(nome=nome, cpf=cpf, telefone=telefone, crm=crm_row, especialidade=especialidade, regras_disponibilidade=regras)
+                        m.id = mid
+                        return m
                     return None
                 except sqlite3.Error as e:
                     raise
@@ -245,14 +257,17 @@ class AgendaRepository:
                 try:
                     cursor.execute(
                         """
-                        SELECT nome, cpf, telefone, especialidade
+                        SELECT id, nome, cpf, telefone, crm, especialidade, regras_disponibilidade
                         FROM medicos;
                         """
                     )
                     rows = cursor.fetchall()
                     for row in rows:
-                        nome, cpf, telefone, especialidade = row
-                        medicos.append(Medico(nome=nome, cpf=cpf, telefone=telefone, crm="Desconhecido", especialidade=especialidade, regras_disponibilidade={}))
+                        mid, nome, cpf, telefone, crm, especialidade, regras_json = row
+                        regras = json.loads(regras_json) if regras_json else {}
+                        m = Medico(nome=nome, cpf=cpf, telefone=telefone, crm=crm, especialidade=especialidade, regras_disponibilidade=regras)
+                        m.id = mid
+                        medicos.append(m)
                     return medicos
                 except sqlite3.Error as e:
                     raise

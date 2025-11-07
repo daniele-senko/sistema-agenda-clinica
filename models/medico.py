@@ -1,4 +1,4 @@
-from models.pessoa import Pessoa
+from .pessoa import Pessoa
 
 class Medico(Pessoa):
     """
@@ -8,19 +8,20 @@ class Medico(Pessoa):
     Também aplica o pilar da HERANÇA (herda de Pessoa).
     """
 
-    def __init__(self, nome: str, cpf: str, telefone: str, crm: str, especialidade: str, regras_disponibilidade: str):
+    def __init__(self, nome: str, cpf: str, telefone: str, crm: str, especialidade: str, regras_disponibilidade: dict):
         
         # 1. Chama o construtor da classe Mãe (Pessoa).
-        super().__init__(id, nome, cpf,)
+        super().__init__(nome, cpf, telefone)
 
         # 2. Inicializa os atributos específicos do Médico.
-        self._id = None  # ID será atribuído pelo banco de dados
-        self._telefone = telefone
         self._crm = crm
         self._especialidade = especialidade
-        self._regras_disponibilidade = regras_disponibilidade
-        self._nome = nome
-        self._cpf = cpf
+        # regras_disponibilidade deve ser dict (não string)
+        if isinstance(regras_disponibilidade, str):
+            import json
+            self._regras_disponibilidade = json.loads(regras_disponibilidade)
+        else:
+            self._regras_disponibilidade = regras_disponibilidade or {}
 
     # --- Getters Específicos do Médico ---
     

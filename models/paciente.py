@@ -1,6 +1,6 @@
-# A importação com "." (from.pessoa...) significa "do mesmo pacote,
+# A importação com "." (from .pessoa...) significa "do mesmo pacote,
 # pegue o arquivo pessoa e importe a classe Pessoa".
-from models.pessoa import Pessoa
+from .pessoa import Pessoa
 
 class Paciente(Pessoa):
     """

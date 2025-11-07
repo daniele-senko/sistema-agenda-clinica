@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 # Importamos as classes Paciente e Medico para usá-las na Composição.
-from models.paciente import Paciente
-from models.medico import Medico
+from .paciente import Paciente
+from .medico import Medico
 
 class Agendamento:
     """

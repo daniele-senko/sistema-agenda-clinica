@@ -42,7 +42,15 @@ class Pessoa(ABC):
     def telefone(self):
         return self._telefone
 
-    # --- Método Abstrato ---
+    @property
+    def id(self):
+        """Getter para o ID (setado pela persistência)."""
+        return self._id
+    
+    @id.setter
+    def id(self, value):
+        """Setter para o ID (usado pela persistência ao salvar)."""
+        self._id = value
     
     @abstractmethod
     def identificar(self):
