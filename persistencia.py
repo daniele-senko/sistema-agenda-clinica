@@ -51,7 +51,7 @@ class AgendaRepository:
                 nome TEXT NOT NULL,
                 cpf TEXT UNIQUE NOT NULL,
                 telefone TEXT NOT NULL,
-                crm TEXT UNIQUE NOT NULL,
+                crm TEXT,
                 especialidade TEXT,
                 regras_disponibilidade TEXT
             );
@@ -175,7 +175,7 @@ class AgendaRepository:
             with self._get_conexao() as conn:
                 cursor = conn.cursor()
                 try:
-                    regras_json = json.dumps(medico.regras_disponibilidade)
+                    # TOFIX Ajustar para incluir regras_disponibilidade no sqlite3
                     cursor.execute(
                         """
                         INSERT INTO medicos (nome, cpf, telefone, especialidade, crm, regras_disponibilidade)
@@ -187,6 +187,7 @@ class AgendaRepository:
                             medico.telefone,
                             medico.especialidade,
                             medico.crm,
+                            medico.regras_disponibilidade
                         )
                     )
                     conn.commit()
@@ -280,9 +281,7 @@ class AgendaRepository:
 
                     # Obtém o ID do paciente pelo CPF
                     cursor.execute(
-                        """"
-                        SELECT id FROM pacientes WHERE cpf = ?;
-                        """,
+                        "SELECT id FROM pacientes WHERE cpf = ?;",
                         (ag.paciente.cpf,)
                     )
                     paciente_row = cursor.fetchone()
@@ -293,9 +292,7 @@ class AgendaRepository:
 
                     # Obtém o ID do médico pelo CRM
                     cursor.execute(
-                        """"
-                        SELECT id FROM medicos WHERE crm = ?;
-                        """,
+                        "SELECT id FROM medicos WHERE crm = ?;",
                         (ag.medico.crm,)
                     )
                     medico_row = cursor.fetchone()
