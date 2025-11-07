@@ -167,7 +167,9 @@ class AgendaRepository:
                     row = cursor.fetchone()
                     if row:
                         pid, nome, cpf_row, telefone, plano = row
-                        return Paciente(id=pid, nome=nome, cpf=cpf_row, telefone=telefone, plano_saude=plano)
+                        p = Paciente(nome=nome, cpf=cpf_row, telefone=telefone, plano_saude=plano)
+                        p.id = pid
+                        return p
                     return None
                 except sqlite3.Error as e:
                     raise
@@ -293,28 +295,13 @@ class AgendaRepository:
             with self._get_conexao() as conn:
                 cursor = conn.cursor()
                 try:
-
-                    # Obtém o ID do paciente pelo CPF
-                    cursor.execute(
-                        "SELECT id FROM pacientes WHERE cpf = ?;",
-                        (ag.paciente.cpf,)
-                    )
-                    paciente_row = cursor.fetchone()
-                    if paciente_row:
-                        ag.paciente.id = paciente_row[0]
-                    else:
-                        raise ValueError("Paciente não encontrado no banco de dados.")
-
-                    # Obtém o ID do médico pelo CRM
-                    cursor.execute(
-                        "SELECT id FROM medicos WHERE crm = ?;",
-                        (ag.medico.crm,)
-                    )
-                    medico_row = cursor.fetchone()
-                    if medico_row:
-                        ag.medico.id = medico_row[0]
-                    else:
-                        raise ValueError("Médico não encontrado no banco de dados.")
+                    # O ID do paciente já deve vir setado pela Clinica
+                    if not ag.paciente.id:
+                        raise ValueError("Paciente sem ID não pode agendar.")
+                    
+                    # O ID do médico já deve vir setado pela Clinica
+                    if not ag.medico.id:
+                        raise ValueError("Médico sem ID não pode agendar.")
 
                     cursor.execute(
                         """
@@ -342,7 +329,7 @@ class AgendaRepository:
                 try:
                     cursor.execute(
                         """
-                        SELECT id_medico, data_hora_inicio, duracao_minutos, status
+                        SELECT id, id_medico, data_hora_inicio, duracao_minutos, status
                         FROM agendamentos
                         WHERE id_paciente = ?;
                         """,
@@ -350,18 +337,19 @@ class AgendaRepository:
                     )
                     rows = cursor.fetchall()
                     for row in rows:
-                        id_medico, data_hora_inicio, duracao_minutos, status = row
+                        aid, id_medico, data_hora_inicio, duracao_minutos, status = row
                         medico = self.buscar_medico(id_medico)
                         paciente = self.buscar_paciente(id_paciente)
                         if medico and paciente:
-                            agendamentos.append(
-                                Agendamento(
-                                    paciente=paciente,
-                                    medico=medico,
-                                    data_hora_inicio=datetime.fromisoformat(data_hora_inicio),
-                                    duracao_minutos=duracao_minutos
-                                )
+                            ag = Agendamento(
+                                paciente=paciente,
+                                medico=medico,
+                                data_hora_inicio=datetime.fromisoformat(data_hora_inicio),
+                                duracao_minutos=duracao_minutos
                             )
+                            ag.id = aid
+                            ag.status = status
+                            agendamentos.append(ag)
                     return agendamentos
                 except sqlite3.Error as e:
                     raise
@@ -374,7 +362,7 @@ class AgendaRepository:
                 try:
                     cursor.execute(
                         """
-                        SELECT id_paciente, data_hora_inicio, duracao_minutos, status
+                        SELECT id, id_paciente, data_hora_inicio, duracao_minutos, status
                         FROM agendamentos
                         WHERE id_medico = ? AND date(data_hora_inicio) = date(?);
                         """,
@@ -382,18 +370,19 @@ class AgendaRepository:
                     )
                     rows = cursor.fetchall()
                     for row in rows:
-                        id_paciente, data_hora_inicio, duracao_minutos, status = row
+                        aid, id_paciente, data_hora_inicio, duracao_minutos, status = row
                         medico = self.buscar_medico(id_medico)
                         paciente = self.buscar_paciente(id_paciente)
                         if medico and paciente:
-                            agendamentos.append(
-                                Agendamento(
-                                    paciente=paciente,
-                                    medico=medico,
-                                    data_hora_inicio=datetime.fromisoformat(data_hora_inicio),
-                                    duracao_minutos=duracao_minutos
-                                )
+                            ag = Agendamento(
+                                paciente=paciente,
+                                medico=medico,
+                                data_hora_inicio=datetime.fromisoformat(data_hora_inicio),
+                                duracao_minutos=duracao_minutos
                             )
+                            ag.id = aid
+                            ag.status = status
+                            agendamentos.append(ag)
                     return agendamentos
                 except sqlite3.Error as e:
                     raise
@@ -423,3 +412,58 @@ class AgendaRepository:
             print("Banco de dados inicializado.")
         else:
             print("Banco de dados já existe.")
+
+    # --- CORREÇÃO: MÉTODOS ADICIONADOS ---
+
+    def buscar_agendamento(self, id_agendamento: int) -> Optional[Agendamento]:
+            """Busca um Agendamento pelo ID. Retorna None se não encontrado."""
+            with self._get_conexao() as conn:
+                cursor = conn.cursor()
+                try:
+                    cursor.execute(
+                        """
+                        SELECT id, id_paciente, id_medico, data_hora_inicio, duracao_minutos, status
+                        FROM agendamentos
+                        WHERE id = ?;
+                        """,
+                        (id_agendamento,)
+                    )
+                    row = cursor.fetchone()
+                    if row:
+                        aid, id_paciente, id_medico, data_hora_inicio, duracao, status = row
+                        
+                        paciente = self.buscar_paciente(id_paciente)
+                        medico = self.buscar_medico(id_medico)
+                        
+                        if not paciente or not medico:
+                            return None # Ou lançar um erro, caso de dados órfãos
+
+                        ag = Agendamento(
+                            paciente=paciente,
+                            medico=medico,
+                            data_hora_inicio=datetime.fromisoformat(data_hora_inicio),
+                            duracao_minutos=duracao
+                        )
+                        ag.id = aid
+                        ag.status = status # Seta o status vindo do banco
+                        return ag
+                    return None
+                except sqlite3.Error as e:
+                    raise
+                    
+    def atualizar_agendamento(self, ag: Agendamento) -> None:
+        """Atualiza um agendamento existente no banco (ex: status)."""
+        with self._get_conexao() as conn:
+            cursor = conn.cursor()
+            try:
+                cursor.execute(
+                    """
+                    UPDATE agendamentos
+                    SET status = ?
+                    WHERE id = ?;
+                    """,
+                    (ag.status, ag.id)
+                )
+                conn.commit()
+            except sqlite3.Error as e:
+                raise
