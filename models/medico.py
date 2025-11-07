@@ -8,15 +8,19 @@ class Medico(Pessoa):
     Também aplica o pilar da HERANÇA (herda de Pessoa).
     """
 
-    def __init__(self, nome: str, cpf: str, telefone: str, crm: str, especialidade: str, regras_disponibilidade: dict):
+    def __init__(self, nome: str, cpf: str, telefone: str, crm: str, especialidade: str, regras_disponibilidade: str):
         
         # 1. Chama o construtor da classe Mãe (Pessoa).
         super().__init__(id, nome, cpf,)
 
         # 2. Inicializa os atributos específicos do Médico.
+        self._id = None  # ID será atribuído pelo banco de dados
+        self._telefone = telefone
         self._crm = crm
         self._especialidade = especialidade
         self._regras_disponibilidade = regras_disponibilidade
+        self._nome = nome
+        self._cpf = cpf
 
     # --- Getters Específicos do Médico ---
     
