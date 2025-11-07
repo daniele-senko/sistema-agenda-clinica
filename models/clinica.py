@@ -1,37 +1,8 @@
-from __future__ import annotations
 from datetime import datetime, date, time, timedelta
-from typing import List
-import sys
-from pathlib import Path
-from persistencia import AgendaRepository
-from models.paciente import Paciente
 from models.medico import Medico
 from models.agendamento import Agendamento
 
-PROJECT_ROOT = Path(__file__).parent
-MODELS_DIR = PROJECT_ROOT / "sistema-agenda-clinica"
-if str(MODELS_DIR) not in sys.path:
-    sys.path.insert(0, str(MODELS_DIR))
-
 class Clinica:
-    """
-    Camada de ORQUESTRAÇÃO (Pessoa 3).
-    Não contém SQL. Depende de um 'GerenciadorBD' injetado no construtor.
-
-    Contrato esperado do GerenciadorBD:
-      - buscar_paciente(id_paciente) -> Paciente | None
-      - buscar_medico(id_medico) -> Medico | None
-      - buscar_todos_pacientes() -> list[Paciente]
-      - buscar_todos_medicos() -> list[Medico]
-      - buscar_agendamentos_por_paciente(id_paciente) -> list[Agendamento]
-      - buscar_agendamentos_por_medico_e_data(id_medico, data_iso: str) -> list[Agendamento]
-      - salvar_agendamento(ag: Agendamento) -> int
-    """
-
-    def __init__(self, gerenciador_bd):
-        self.bd = gerenciador_bd
-
-    # ----------------- API pública -----------------
 
     def marcar_consulta(self, id_paciente: int, id_medico: int, inicio: datetime, duracao_min: int) -> Agendamento:
         """Valida disponibilidade; cria e persiste um novo Agendamento."""
@@ -59,7 +30,6 @@ class Clinica:
         for m in self.bd.buscar_todos_medicos():
             m.identificar()
 
-    # ----------------- Núcleo de disponibilidade -----------------
 
     def _verificar_disponibilidade(self, medico: Medico, inicio: datetime, duracao_min: int, *, id_medico: int) -> None:
         """
@@ -96,8 +66,6 @@ class Clinica:
             if _overlap(inicio, fim, ag.data_hora_inicio, ag.data_hora_fim):
                 raise ValueError("Conflito com outro agendamento no período.")
 
-
-# ----------------- Helpers -----------------
 
 def _parse_hhmm(s: str) -> time:
     hh, mm = s.split(":")
