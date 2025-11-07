@@ -12,7 +12,7 @@ PROJECT_ROOT = Path(__file__).parent
 MODELS_DIR = PROJECT_ROOT / "sistema-agenda-clinica"
 if str(MODELS_DIR) not in sys.path:
     sys.path.insert(0, str(MODELS_DIR))
-
+AgendaRepository
 from models.paciente import Paciente
 from models.medico import Medico
 from models.agendamento import Agendamento

@@ -25,6 +25,8 @@ def test_agenda_repository():
     repo.salvar_medico(medico0)
     repo.salvar_agendamento(agendamento)
 
+
+
     repo.buscar_todos_medicos()
 
 if __name__ == "__main__":
