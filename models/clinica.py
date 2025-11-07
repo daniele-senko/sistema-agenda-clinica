@@ -1,23 +1,17 @@
 from __future__ import annotations
-
 from datetime import datetime, date, time, timedelta
 from typing import List
 import sys
 from pathlib import Path
 from persistencia import AgendaRepository
-
-# Tornar o pacote local importável quando este script é executado como
-# script standalone. Adicionamos a pasta 'sistema-agenda-clinica' ao
-# sys.path para permitir 'from models.xxx import YYY'.
-PROJECT_ROOT = Path(__file__).parent
-MODELS_DIR = PROJECT_ROOT / "sistema-agenda-clinica"
-if str(MODELS_DIR) not in sys.path:
-    sys.path.insert(0, str(MODELS_DIR))
-AgendaRepository
 from models.paciente import Paciente
 from models.medico import Medico
 from models.agendamento import Agendamento
 
+PROJECT_ROOT = Path(__file__).parent
+MODELS_DIR = PROJECT_ROOT / "sistema-agenda-clinica"
+if str(MODELS_DIR) not in sys.path:
+    sys.path.insert(0, str(MODELS_DIR))
 
 class Clinica:
     """
