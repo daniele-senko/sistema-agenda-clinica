@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from typing import List
 from models.agendamento import Agendamento
 from models.medico import Medico
@@ -20,18 +20,7 @@ class Clinica:
     def marcar_consulta(self, id_paciente: int, id_medico: int, inicio: datetime, duracao_min: int) -> Agendamento:
         """
         Marca uma consulta validando regras de negócio.
-
-        Args:
-            id_paciente: ID do paciente.
-            id_medico: ID do médico.
-            inicio: Data e hora de início da consulta.
-            duracao_min: Duração da consulta em minutos.
-
-        Returns:
-            Agendamento criado.
-
-        Raises:
-            ValueError: Se houver conflito de horário ou regras violadas.
+        ...
         """
         # Busca paciente e médico
         paciente = self.repo.buscar_paciente(id_paciente)
@@ -55,9 +44,10 @@ class Clinica:
             paciente=paciente,
             medico=medico,
             data_hora_inicio=inicio,
-            duracao_minutos=duracao_min,
-            status="agendado"
+            duracao_minutos=duracao_min
         )
+        agendamento.status = "agendado" # O status é setado aqui
+
 
         agendamento_id = self.repo.salvar_agendamento(agendamento)
         agendamento.id = agendamento_id
@@ -93,9 +83,13 @@ class Clinica:
     def _verificar_conflito_horario(self, id_medico: int, inicio: datetime, duracao_min: int) -> bool:
         """Verifica se há conflito de horário com outras consultas do médico."""
         fim = inicio + timedelta(minutes=duracao_min)
-        agendamentos = self.repo.buscar_agendamentos_medico(id_medico, inicio.date())
+        
+        agendamentos = self.repo.buscar_agendamentos_por_medico_e_data(id_medico, inicio.date().isoformat())
 
         for ag in agendamentos:
+            if ag.status == 'Cancelado':
+                continue
+            
             ag_fim = ag.data_hora_inicio + timedelta(minutes=ag.duracao_minutos)
             if (inicio < ag_fim and fim > ag.data_hora_inicio):
                 return True
@@ -105,38 +99,33 @@ class Clinica:
     def consultar_agenda_paciente(self, id_paciente: int) -> List[Agendamento]:
         """
         Retorna todas as consultas de um paciente.
-
-        Args:
-            id_paciente: ID do paciente.
-
-        Returns:
-            Lista de agendamentos do paciente.
         """
-        return self.repo.buscar_agendamentos_paciente(id_paciente)
+        return self.repo.buscar_agendamentos_por_paciente(id_paciente)
 
-    def consultar_agenda_medico(self, id_medico: int, data: datetime.date) -> List[Agendamento]:
+    def consultar_agenda_medico(self, id_medico: int, data: date) -> List[Agendamento]:
         """
         Retorna todas as consultas de um médico em uma data específica.
-
-        Args:
-            id_medico: ID do médico.
-            data: Data para consulta.
-
-        Returns:
-            Lista de agendamentos do médico na data especificada.
         """
-        return self.repo.buscar_agendamentos_medico(id_medico, data)
+        return self.repo.buscar_agendamentos_por_medico_e_data(id_medico, data.isoformat())
 
     def cancelar_consulta(self, id_agendamento: int) -> None:
         """
         Cancela uma consulta.
-
-        Args:
-            id_agendamento: ID do agendamento a ser cancelado.
         """
         agendamento = self.repo.buscar_agendamento(id_agendamento)
         if not agendamento:
             raise ValueError(f"Agendamento com ID {id_agendamento} não encontrado.")
 
-        agendamento.status = "cancelado"
+        agendamento.cancelar() # Usa o método do objeto
+        
         self.repo.atualizar_agendamento(agendamento)
+        
+    # --- MÉTODOS NOVOS ADICIONADOS AQUI ---
+    
+    def listar_todos_pacientes(self) -> List[Paciente]:
+        """Retorna uma lista de todos os pacientes cadastrados."""
+        return self.repo.buscar_todos_pacientes()
+        
+    def listar_todos_medicos(self) -> List[Medico]:
+        """Retorna uma lista de todos os médicos cadastrados."""
+        return self.repo.buscar_todos_medicos()
