@@ -4,6 +4,7 @@ from datetime import datetime, date, time, timedelta
 from typing import List
 import sys
 from pathlib import Path
+from persistencia import AgendaRepository
 
 # Tornar o pacote local importável quando este script é executado como
 # script standalone. Adicionamos a pasta 'sistema-agenda-clinica' ao
