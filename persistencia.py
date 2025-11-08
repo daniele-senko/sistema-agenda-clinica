@@ -250,6 +250,30 @@ class AgendaRepository:
                 except sqlite3.Error as e:
                     raise
 
+    # --- NOVO ---
+    def buscar_medico_por_cpf(self, cpf: str) -> Optional[Medico]:
+            """Busca um Médico pelo CPF. Retorna None se não encontrado."""
+            with self._get_conexao() as conn:
+                cursor = conn.cursor()
+                try:
+                    cursor.execute(
+                        """
+                        SELECT id, nome, cpf, telefone, crm, especialidade, regras_disponibilidade
+                        FROM medicos
+                        WHERE cpf = ?;
+                        """,
+                        (cpf,)
+                    )
+                    row = cursor.fetchone()
+                    if row:
+                        mid, nome, cpf_row, telefone, crm, especialidade, regras_json = row
+                        regras = json.loads(regras_json) if regras_json else {}
+                        m = Medico(nome=nome, cpf=cpf_row, telefone=telefone, crm=crm, especialidade=especialidade, regras_disponibilidade=regras)
+                        m.id = mid
+                        return m
+                    return None
+                except sqlite3.Error as e:
+                    raise
 
     def buscar_todos_medicos(self) -> List[Medico]:
             """Retorna uma lista de todos os Médicos no banco de dados."""
@@ -413,8 +437,6 @@ class AgendaRepository:
         else:
             print("Banco de dados já existe.")
 
-    # --- CORREÇÃO: MÉTODOS ADICIONADOS ---
-
     def buscar_agendamento(self, id_agendamento: int) -> Optional[Agendamento]:
             """Busca um Agendamento pelo ID. Retorna None se não encontrado."""
             with self._get_conexao() as conn:
@@ -466,4 +488,26 @@ class AgendaRepository:
                 )
                 conn.commit()
             except sqlite3.Error as e:
+                raise
+
+    # --- NOVO ---
+    def atualizar_paciente(self, id_paciente: int, telefone: str, plano_saude: str) -> None:
+        """Atualiza o telefone e o plano de saúde de um paciente existente."""
+        with self._get_conexao() as conn:
+            cursor = conn.cursor()
+            try:
+                cursor.execute(
+                    """
+                    UPDATE pacientes
+                    SET telefone = ?, plano_saude = ?
+                    WHERE id = ?;
+                    """,
+                    (telefone, plano_saude, id_paciente)
+                )
+                conn.commit()
+                if cursor.rowcount == 0:
+                    # Isso garante que não tentamos atualizar um ID que não existe
+                    raise ValueError(f"Paciente com ID {id_paciente} não encontrado para atualização.")
+            except sqlite3.Error as e:
+                print(f"Erro ao atualizar paciente: {e}")
                 raise

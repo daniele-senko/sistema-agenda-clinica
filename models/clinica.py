@@ -3,19 +3,49 @@ from typing import List
 from models.agendamento import Agendamento
 from models.medico import Medico
 from models.paciente import Paciente
+from persistencia import AgendaRepository 
 
 
 class Clinica:
     """Classe que gerencia as regras de negócio da clínica."""
 
-    def __init__(self, repo):
+    def __init__(self, repo: AgendaRepository):
         """
         Inicializa a clínica com um repositório de dados.
-
-        Args:
-            repo: Instância de AgendaRepository para persistência de dados.
         """
         self.repo = repo
+
+    # --- NOVO ---
+    def cadastrar_paciente(self, paciente: Paciente) -> int:
+        """Cadastra um novo paciente, validando regras de negócio."""
+        
+        # REGRA: Não permitir CPF duplicado (em pacientes ou médicos)
+        if self.repo.buscar_paciente_por_cpf(paciente.cpf) or self.repo.buscar_medico_por_cpf(paciente.cpf):
+            raise ValueError(f"Já existe um usuário (paciente ou médico) cadastrado com o CPF {paciente.cpf}.")
+        
+        # REGRA: (Exemplo) Plano de saúde não pode estar vazio
+        if not paciente.plano_saude or not paciente.plano_saude.strip():
+             raise ValueError("O plano de saúde é obrigatório.")
+
+        paciente_id = self.repo.salvar_paciente(paciente)
+        paciente.id = paciente_id
+        return paciente.id
+
+    # --- NOVO ---
+    def cadastrar_medico(self, medico: Medico) -> int:
+        """Cadastra um novo médico, validando regras de negócio."""
+        
+        # REGRA: Não permitir CPF duplicado (em pacientes ou médicos)
+        if self.repo.buscar_paciente_por_cpf(medico.cpf) or self.repo.buscar_medico_por_cpf(medico.cpf):
+            raise ValueError(f"Este CPF já está em uso por outro usuário (paciente ou médico).")
+
+        # REGRA: Não permitir CRM duplicado
+        if self.repo.buscar_medico_por_crm(medico.crm):
+            raise ValueError(f"O CRM {medico.crm} já está cadastrado.")
+
+        medico_id = self.repo.salvar_medico(medico)
+        medico.id = medico_id
+        return medico.id
 
     def marcar_consulta(self, id_paciente: int, id_medico: int, inicio: datetime, duracao_min: int) -> Agendamento:
         """
@@ -116,12 +146,10 @@ class Clinica:
         if not agendamento:
             raise ValueError(f"Agendamento com ID {id_agendamento} não encontrado.")
 
-        agendamento.cancelar() # Usa o método do objeto
+        agendamento.cancelar()
         
         self.repo.atualizar_agendamento(agendamento)
-        
-    # --- MÉTODOS NOVOS ADICIONADOS AQUI ---
-    
+            
     def listar_todos_pacientes(self) -> List[Paciente]:
         """Retorna uma lista de todos os pacientes cadastrados."""
         return self.repo.buscar_todos_pacientes()
@@ -129,3 +157,24 @@ class Clinica:
     def listar_todos_medicos(self) -> List[Medico]:
         """Retorna uma lista de todos os médicos cadastrados."""
         return self.repo.buscar_todos_medicos()
+
+    # --- NOVO ---
+    def atualizar_dados_paciente(self, id_paciente: int, novo_telefone: str, novo_plano: str) -> Paciente:
+        """
+A-        Atualiza os dados de um paciente, validando regras.
+        """
+        # REGRA: Valida se o paciente existe
+        paciente = self.repo.buscar_paciente(id_paciente)
+        if not paciente:
+            raise ValueError(f"Paciente com ID {id_paciente} não encontrado.")
+        
+        # REGRA: (Exemplo) Valida se os dados não estão vazios
+        if not novo_telefone.strip() or not novo_plano.strip():
+            raise ValueError("Telefone e Plano de Saúde não podem ser vazios.")
+            
+        self.repo.atualizar_paciente(id_paciente, novo_telefone, novo_plano)
+        
+        # Retorna o objeto paciente ATUALIZADO, lendo do banco
+        # Isso garante que estamos retornando os dados corretos
+        # e respeitando o encapsulamento dos models (que não têm setters)
+        return self.repo.buscar_paciente(id_paciente)
