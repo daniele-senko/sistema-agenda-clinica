@@ -47,11 +47,11 @@ def obter_regras_interativas() -> dict:
 def cadastrar_medico(clinica: Clinica):
     """Cadastra um novo médico no sistema."""
     print("\n=== Cadastro de Médico ===")
-    nome = input("Nome do médico: ")
-    cpf = input("CPF do médico: ")
-    telefone = input("Telefone do médico: ")
-    crm = input("CRM do médico: ")
-    especialidade = input("Especialidade do médico: ")
+    nome = input("Nome do médico: ").strip()
+    cpf = input("CPF do médico: ").strip()
+    telefone = input("Telefone do médico: ").strip()
+    crm = input("CRM do médico: ").strip()
+    especialidade = input("Especialidade do médico: ").strip()
     regras_dict = obter_regras_interativas()
 
     try:
@@ -67,49 +67,60 @@ def cadastrar_medico(clinica: Clinica):
         medico_id = clinica.cadastrar_medico(medico)
         print(f"\nMédico cadastrado com sucesso! ID: {medico_id}")
 
-    # Captura os erros de negócio (ex: CPF duplicado)
     except ValueError as e:
         print(f"\n[ERRO DE NEGÓCIO] Não foi possível cadastrar: {e}")
     except Exception as e:
         print(f"Erro inesperado ao cadastrar médico: {e}")
 
+
 def cadastrar_paciente(clinica: Clinica):
     """Cadastra um novo paciente no sistema."""
     print("\n=== Cadastro de Paciente ===")
-    nome = input("Nome do paciente: ")
-    cpf = input("CPF do paciente: ")
-    telefone = input("Telefone do paciente: ")
-    plano_saude = input("Plano de saúde do paciente: ")
+    nome = input("Nome do paciente: ").strip()
+    cpf = input("CPF do paciente: ").strip()
+    telefone = input("Telefone do paciente: ").strip()
+    plano_saude = input("Plano de saúde do paciente: ").strip()
 
     try:
         paciente = Paciente(
             nome=nome, cpf=cpf, telefone=telefone, plano_saude=plano_saude
         )
-        # Chama a camada de lógica (clinica) que fará a validação
         paciente_id = clinica.cadastrar_paciente(paciente)
         print(f"Paciente cadastrado com sucesso! ID: {paciente_id}")
 
-    # Captura os erros de negócio (ex: CPF duplicado)
     except ValueError as e:
         print(f"\n[ERRO DE NEGÓCIO] Não foi possível cadastrar: {e}")
     except Exception as e:
         print(f"Erro ao cadastrar paciente: {e}")
 
 
-def marcar_consulta(clinica):
+def marcar_consulta(clinica: Clinica):
     """Marca uma consulta no sistema."""
     print("\n=== Marcar Consulta ===")
     try:
-        id_paciente = int(input("ID do paciente: "))
-        id_medico = int(input("ID do médico: "))
-        inicio_str = input("Data e hora da consulta (YYYY-MM-DD HH:MM): ")
+        # --- MUDANÇA: Pedir CPF em vez de ID ---
+        cpf_paciente = input("CPF do paciente: ").strip()
+        paciente = clinica.repo.buscar_paciente_por_cpf(cpf_paciente)
+        if not paciente:
+            print(f"Erro: Paciente com CPF {cpf_paciente} não encontrado.")
+            return
+
+        # --- MUDANÇA: Pedir CRM em vez de ID ---
+        crm_medico = input("CRM do médico: ").strip()
+        medico = clinica.repo.buscar_medico_por_crm(crm_medico)
+        if not medico:
+            print(f"Erro: Médico com CRM {crm_medico} não encontrado.")
+            return
+
+        inicio_str = input("Data e hora da consulta (YYYY-MM-DD HH:MM): ").strip()
         duracao_min = int(input("Duração da consulta (em minutos): "))
 
         inicio_dt = datetime.strptime(inicio_str, "%Y-%m-%d %H:%M")
 
+        # --- MUDANÇA: Usar os IDs encontrados ---
         agendamento = clinica.marcar_consulta(
-            id_paciente=id_paciente,
-            id_medico=id_medico,
+            id_paciente=paciente.id,
+            id_medico=medico.id,
             inicio=inicio_dt,
             duracao_min=duracao_min,
         )
@@ -128,36 +139,43 @@ def marcar_consulta(clinica):
         )
 
     except ValueError as e:
-        # Captura erros de digitação (ex: data inválida) ou de negócio (ex: horário)
         print(f"\n[ERRO] Não foi possível marcar consulta: {e}")
     except Exception as e:
         print(f"Erro inesperado: {e}")
 
 
-def listar_consultas(clinica):
+def listar_consultas(clinica: Clinica):
     """Lista as consultas de um paciente."""
     print("\n=== Listar Consultas ===")
     try:
-        id_paciente = int(input("ID do paciente: "))
-        consultas = clinica.consultar_agenda_paciente(id_paciente)
-
-        if not consultas:
-            print("Nenhuma consulta encontrada para este paciente.")
+        # --- MUDANÇA: Pedir CPF em vez de ID ---
+        cpf_paciente = input("CPF do paciente: ").strip()
+        paciente = clinica.repo.buscar_paciente_por_cpf(cpf_paciente)
+        if not paciente:
+            print(f"Erro: Paciente com CPF {cpf_paciente} não encontrado.")
             return
 
-        print(f"\nConsultas do paciente (ID: {id_paciente}):")
+        # --- MUDANÇA: Usar o ID encontrado ---
+        consultas = clinica.consultar_agenda_paciente(paciente.id)
+
+        if not consultas:
+            print(f"Nenhuma consulta encontrada para o paciente {paciente.nome}.")
+            return
+        
+        # --- MUDANÇA: Usar o nome do paciente que já temos ---
+        print(f"\nConsultas do paciente: {paciente.nome} (ID: {paciente.id})")
+
         for consulta in consultas:
-            print(
-                f"- ID: {consulta.id} | {consulta.data_hora_inicio} | "
-                f"Médico: {consulta.medico.nome} | Status: {consulta.status}"
-            )
+            print(f"- ID: {consulta.id} | {consulta.data_hora_inicio} | "
+                  f"Médico: {consulta.medico.nome} | Status: {consulta.status}")
+
     except ValueError as e:
         print(f"Erro: {e}")
     except Exception as e:
         print(f"Erro inesperado: {e}")
 
 
-def listar_pacientes(clinica):
+def listar_pacientes(clinica: Clinica):
     """Lista todos os pacientes cadastrados."""
     print("\n=== Lista de Pacientes Cadastrados ===")
     try:
@@ -177,7 +195,7 @@ def listar_pacientes(clinica):
         print(f"Erro ao listar pacientes: {e}")
 
 
-def listar_medicos(clinica):
+def listar_medicos(clinica: Clinica):
     """Lista todos os médicos cadastrados."""
     print("\n=== Lista de Médicos Cadastrados ===")
     try:
@@ -197,10 +215,11 @@ def listar_medicos(clinica):
         print(f"Erro ao listar médicos: {e}")
 
 
-def cancelar_consulta(clinica):
+def cancelar_consulta(clinica: Clinica):
     """Cancela uma consulta existente."""
     print("\n=== Cancelar Consulta ===")
     try:
+        # ID do agendamento é ok pedir, pois é mostrado na listagem
         id_agendamento = int(input("Digite o ID do agendamento a ser cancelado: "))
 
         clinica.cancelar_consulta(id_agendamento)
@@ -212,18 +231,18 @@ def cancelar_consulta(clinica):
     except Exception as e:
         print(f"Erro inesperado: {e}")
 
+
 def atualizar_paciente(clinica: Clinica):
     """Atualiza dados de um paciente."""
     print("\n=== Atualizar Paciente ===")
     try:
-        id_paciente = int(input("ID do paciente a ser atualizado: "))
+        # --- MUDANÇA: Pedir CPF em vez de ID ---
+        cpf_paciente = input("CPF do paciente a ser atualizado: ").strip()
 
         # Busca o paciente primeiro para mostrar os dados atuais
-        paciente = clinica.repo.buscar_paciente(
-            id_paciente
-        )
+        paciente = clinica.repo.buscar_paciente_por_cpf(cpf_paciente)
         if not paciente:
-            print(f"Paciente ID {id_paciente} não encontrado.")
+            print(f"Paciente com CPF {cpf_paciente} não encontrado.")
             return
 
         print(
@@ -234,14 +253,14 @@ def atualizar_paciente(clinica: Clinica):
         novo_telefone = input(f"Novo telefone ({paciente.telefone}): ").strip()
         novo_plano = input(f"Novo plano de saúde ({paciente.plano_saude}): ").strip()
 
-        # Usa os dados antigos se o usuário não digitar nada
         if not novo_telefone:
             novo_telefone = paciente.telefone
         if not novo_plano:
             novo_plano = paciente.plano_saude
 
+        # --- MUDANÇA: Usar o ID encontrado ---
         paciente_atualizado = clinica.atualizar_dados_paciente(
-            id_paciente, novo_telefone, novo_plano
+            paciente.id, novo_telefone, novo_plano
         )
 
         print(f"Paciente atualizado com sucesso!")
