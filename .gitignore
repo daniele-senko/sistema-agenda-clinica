@@ -27,5 +27,3 @@ ENV/
 htmlcov/
 
 # Project specific
-demo_*.db
-test_*.db
